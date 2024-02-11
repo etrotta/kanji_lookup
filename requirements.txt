@@ -1,0 +1,6 @@
+milvus[client]
+pillow
+torch
+torchvision 
+transformers
+fugashi[unidic-lite]
