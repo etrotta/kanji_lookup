@@ -1,114 +1,81 @@
-import pathlib
 from PIL import Image
 import torch
 from torch.nn.functional import cosine_similarity
 from transformers import (
-    # AutoFeatureExtractor,  # Load extractor from Hub
     VisionEncoderDecoderModel,  # Load ViT model from Hub
-    # ViTFeatureExtractor,  # Load local extractor
     ViTImageProcessor,  # Load local extractor
     ViTModel,  # Load local ViT encoder
 )
 
-MODEL = "kha-white/manga-ocr-base"
+from config import (
+    ROOT,
+    MODEL,
+    EXTRACTOR_PATH,
+    ENCODER_PATH,
+)
 
-ROOT = pathlib.Path.cwd()
+assert MODEL == "kha-white/manga-ocr-base", "Other models are not natively supported, \
+    you may have to change a lot of things to get it to work"
 
-MODELS_FOLDER = ROOT / 'models'
 
-EXTRACTOR_PATH = MODELS_FOLDER / "extractor"
-ENCODER_PATH = MODELS_FOLDER / "encoder"
+def load_model() -> tuple[ViTImageProcessor, ViTModel]:
+    """Load the model based on the config.py file.
+    Returns the `feature_extractor` and the `encoder`, in this order.
+    """
+    if EXTRACTOR_PATH.is_dir():
+        print("Loading local Image Processor")
+        feature_extractor = ViTImageProcessor.from_pretrained(EXTRACTOR_PATH)
+    else:
+        print("Loading Image Processor from HuggingFace Hub")
+        feature_extractor: ViTImageProcessor = ViTImageProcessor.from_pretrained(MODEL)
+        feature_extractor.save_pretrained(EXTRACTOR_PATH)
 
-if EXTRACTOR_PATH.is_dir():
-    print("Loading local Image Processor")
-    feature_extractor = ViTImageProcessor.from_pretrained(EXTRACTOR_PATH)
-else:
-    # feature_extractor: ViTFeatureExtractor = AutoFeatureExtractor.from_pretrained(MODEL)
-    # ^ Deprecated
-    print("Loading Image Processor from HuggingFace Hub")
-    feature_extractor: ViTImageProcessor = ViTImageProcessor.from_pretrained(MODEL)
-    feature_extractor.save_pretrained(EXTRACTOR_PATH)
+    if ENCODER_PATH.is_dir():
+        print("Loading local ViT Encoder Model")
+        encoder = ViTModel.from_pretrained(ENCODER_PATH)
+    else:
+        print("Loading ViT Model from HuggingFace Hub")
+        model = VisionEncoderDecoderModel.from_pretrained(MODEL)
+        encoder: ViTModel = model.encoder
+        encoder.save_pretrained(ENCODER_PATH)
 
-if ENCODER_PATH.is_dir():
-    print("Loading local ViT Encoder Model")
-    encoder = ViTModel.from_pretrained(ENCODER_PATH)
-else:
-    print("Loading ViT Model from HuggingFace Hub")
-    model = VisionEncoderDecoderModel.from_pretrained(MODEL)
-    encoder: ViTModel = model.encoder
-    del model
-    encoder.save_pretrained(ENCODER_PATH)
+    return feature_extractor, encoder
 
-# Note: The original repository also features a tokenizer,
-# But we do not use it at all (it is used to turn the decoded text back from tokens into unicode)
 
 # TODO Test removing the last activation layer of the encoder?
 
-# Side note: The original models also remain in your Hugging Face default `.cache` folder
-# (even more offtopic) ...and the venv is pretty heavy
 
+def get_embeddings(feature_extractor: ViTImageProcessor, encoder: ViTModel, images: list[Image.Image]) -> torch.Tensor:
+    """Processes the images and returns their Embeddings"""
+    _images = [image.convert("RGB") for image in images]
+    pixel_values: torch.Tensor = feature_extractor(_images, return_tensors="pt")["pixel_values"].squeeze()
 
-# ---
+    return encoder(pixel_values)["pooler_output"]
 
-IMAGES_FOLDER = ROOT / "images" 
-
-FONT_IMAGES_PATH = IMAGES_FOLDER / "Yomogi-Regular"
-TEST_KANJI = "猫狐狼四匹"
-
-images = {
-    kanji: Image.open(FONT_IMAGES_PATH / f"{kanji}.png", 'r')
-    for kanji in TEST_KANJI
-}
-
-# ---
-
-# next(iter(images.values())).show()
-
-# pre-processing
-_images = [images[kanji].convert("RGB") for kanji in TEST_KANJI]
-pixel_values: torch.Tensor = feature_extractor(_images, return_tensors="pt")["pixel_values"].squeeze()
-
-# get the ViT embedding
-out = encoder(pixel_values)["pooler_output"]
-
-embeddings = {
-    kanji: out[i]
-    for i, kanji in enumerate(TEST_KANJI)
-}
-
-cat, fox, wolf, four, animals = TEST_KANJI
-
-def calc(vec_a: torch.Tensor, vec_b: torch.Tensor):
+def compare_vectors(vec_a: torch.Tensor, vec_b: torch.Tensor):
     _vec_a = (vec_a * 0.5) + 0.5
     _vec_b = (vec_b * 0.5) + 0.5
     return cosine_similarity(_vec_a, _vec_b, dim=0)
 
-tests_cases = [
-    (cat, fox),
-    (cat, wolf),
-    (wolf, fox),
 
-    (cat, four),
-    (cat, animals),
-    (fox, four),
-    (fox, animals),
+if __name__ == "__main__":
+    FONT_IMAGES_PATH = next(iter((ROOT / ".testing" / "images").iterdir()))
+    TEST_KANJI = "猫狐狼四匹"
+    cat, fox, wolf, four, animals = TEST_KANJI
 
-    (animals, four)
-]
-for test_case in tests_cases:
-    print(test_case, calc(embeddings[test_case[0]], embeddings[test_case[1]]))
+    extractor, encoder = load_model()
 
-# ---
+    images = {kanji: Image.open(FONT_IMAGES_PATH / f"{kanji}.png", "r") for kanji in TEST_KANJI}
+    assert list(images.values()) == [images[k] for k in TEST_KANJI]
+    test_image = Image.open(ROOT / ".testing" / "drawing.png", "r")
 
-TEST_IMAGE = Image.open(ROOT / "tmp.png", 'r')
+    tensor = get_embeddings(extractor, encoder, list(images.values()) + [test_image])
+    embeddings = {name: tensor[i] for i, name in enumerate(TEST_KANJI)}
+    drawing_embedding = tensor[len(TEST_KANJI)]
 
-# TEST_IMAGE.show()
+    tests_cases = [(cat, fox), (cat, wolf), (wolf, fox), (cat, four), (cat, animals), (fox, four), (fox, animals), (animals, four)]
+    for test_case in tests_cases:
+        print(test_case, compare_vectors(embeddings[test_case[0]], embeddings[test_case[1]]))
 
-# pre-processing
-_test_pixel_values: torch.Tensor = feature_extractor(TEST_IMAGE.convert("RGB"), return_tensors="pt")["pixel_values"].squeeze()
-
-# get the ViT embedding
-
-_test_out = encoder(_test_pixel_values[None])["pooler_output"][0]
-
-print(dict(sorted({kanji: calc(_test_out, embeddings[kanji]) for kanji in TEST_KANJI}.items(), key=lambda t: t[1], reverse=True)))
+    _comparations = {kanji: compare_vectors(drawing_embedding, embeddings[kanji]) for kanji in TEST_KANJI}
+    print(dict(sorted(_comparations.items(), key=lambda t: t[1], reverse=True)))
