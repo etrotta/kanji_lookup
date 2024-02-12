@@ -35,7 +35,12 @@ The most promising models in my inexperienced view were ``kha-white/manga-ocr``,
 
 #### Vector Database
 Using a vector database at all: About half of why I decided to work on this at all was to get some experience with pytorch, transformers and vector databases
-Specifically `milvus`: Free, open source, easy to setup locally, one of the first three that I looked into (the other two being cloud first, if not cloud-only).
+Specifically `qdrant`: Free, open source, easy to setup locally, the API looks nicer than other options, free cloud tier.
+
+#### Index Metric Type
+I'm using `cosine similarity` just because it is the one I had heard about in the context of vector search before. Literally just that.
+
+I might test the other types and compare the results, but did not research it at all.
 
 ## Acknowledgements
 kanji.txt generated from https://www.kanjidatabase.com/
@@ -53,7 +58,6 @@ Model used for embedding: https://github.com/kha-white/manga-ocr
 (TODO TEST `GOOGLE/DEPLOT` MODEL?)
 
 
-Vector database used: `milvus`
-(note: as of this commit, not in use still, just planning to use)
+Vector database used: `qdrant`
 
 Other tools used: see `requirements.txt`

@@ -1,4 +1,4 @@
-milvus[client]
+qdrant-client
 pillow
 torch
 torchvision 

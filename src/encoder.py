@@ -12,10 +12,13 @@ from config import (
     MODEL,
     EXTRACTOR_PATH,
     ENCODER_PATH,
+    MODEL_EMBEDDING_SIZE
 )
 
+# Didn't want to hardcode within this file, and may have to use elsewhere
 assert MODEL == "kha-white/manga-ocr-base", "Other models are not natively supported, \
     you may have to change a lot of things to get it to work"
+assert MODEL_EMBEDDING_SIZE == 768, "The only model embedding size supported is 768"
 
 
 def load_model() -> tuple[ViTImageProcessor, ViTModel]:
@@ -24,10 +27,10 @@ def load_model() -> tuple[ViTImageProcessor, ViTModel]:
     """
     if EXTRACTOR_PATH.is_dir():
         print("Loading local Image Processor")
-        feature_extractor = ViTImageProcessor.from_pretrained(EXTRACTOR_PATH)
+        feature_extractor = ViTImageProcessor.from_pretrained(EXTRACTOR_PATH, requires_grad=False)
     else:
         print("Loading Image Processor from HuggingFace Hub")
-        feature_extractor: ViTImageProcessor = ViTImageProcessor.from_pretrained(MODEL)
+        feature_extractor: ViTImageProcessor = ViTImageProcessor.from_pretrained(MODEL, requires_grad=False)
         feature_extractor.save_pretrained(EXTRACTOR_PATH)
 
     if ENCODER_PATH.is_dir():
@@ -39,6 +42,8 @@ def load_model() -> tuple[ViTImageProcessor, ViTModel]:
         encoder: ViTModel = model.encoder
         encoder.save_pretrained(ENCODER_PATH)
 
+    encoder.gradient_checkpointing_disable()
+
     return feature_extractor, encoder
 
 
@@ -48,9 +53,9 @@ def load_model() -> tuple[ViTImageProcessor, ViTModel]:
 def get_embeddings(feature_extractor: ViTImageProcessor, encoder: ViTModel, images: list[Image.Image]) -> torch.Tensor:
     """Processes the images and returns their Embeddings"""
     _images = [image.convert("RGB") for image in images]
-    pixel_values: torch.Tensor = feature_extractor(_images, return_tensors="pt")["pixel_values"].squeeze()
-
-    return encoder(pixel_values)["pooler_output"]
+    with torch.inference_mode():
+        pixel_values: torch.Tensor = feature_extractor(_images, return_tensors="pt")["pixel_values"]
+        return encoder(pixel_values)["pooler_output"]
 
 def compare_vectors(vec_a: torch.Tensor, vec_b: torch.Tensor):
     _vec_a = (vec_a * 0.5) + 0.5
