@@ -21,6 +21,11 @@ py src/main.py search test.png
 py src/main.py search drawings
 ```
 
+#### Accuracy
+Far from 100%, but honestly better than what I expected, from my limited testing (see: /drawings), most were found amongst top 5, and only two completely missed top 20 (英 and 印, which are honestly *that* poorly drawn so makes sense - The versions in /drawing_second_shot works though. I kept them as the original version in the normal folder to show some failure cases and not pretend it is perfect.)
+
+Note: I only populated the first 200 kanji x 4 fonts yet though
+
 ### Project Overview
 - Generate synthetic Kanji images using multiple different fonts
 - Encode into Embeddings using a Neural Network
