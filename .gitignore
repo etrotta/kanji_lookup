@@ -1,5 +1,8 @@
 /fonts
 /images
 /models
+/embeddings
+/database
+
 /.testing
 __pycache__

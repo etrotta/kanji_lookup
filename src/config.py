@@ -5,6 +5,7 @@ ROOT = pathlib.Path.cwd()
 IMAGES_FOLDER = ROOT / 'images'
 FONTS_FOLDER = ROOT / 'fonts'
 MODELS_FOLDER = ROOT / 'models'
+EMBEDDINGS_FOLDER = ROOT / 'embeddings'
 
 EXTRACTOR_PATH = MODELS_FOLDER / "extractor"
 ENCODER_PATH = MODELS_FOLDER / "encoder"

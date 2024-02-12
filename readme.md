@@ -4,6 +4,23 @@ Look up Kanji by drawing them
 
 WIP
 
+## Running it
+
+Download fonts and extract them to the a /fonts folder
+Create a 224x224 greyscale image called "test.png" on the repository root folder containing a Kanji drawing, or create a "drawings" folder and fill in with however many images you want.
+```
+pip install -r requirements.txt
+
+py src/main.py generate_images
+py src/main.py generate_embeddings
+py src/main.py populate_database
+```
+Then for searching, you can choose either one individual file or an entire folder:
+```
+py src/main.py search test.png
+py src/main.py search drawings
+```
+
 ### Project Overview
 - Generate synthetic Kanji images using multiple different fonts
 - Encode into Embeddings using a Neural Network
