@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 ROOT = pathlib.Path.cwd()
@@ -38,4 +39,6 @@ MODEL_IMAGE_SIZE = 224
 # Some sizes to try depending on the model: 96, 120, 184, 280
 FONT_SIZE = 184
 
-DATABASE_LOCATION = 'localhost'  # can set to `:memory:`, `localhost`, a file, or a cloud URL - see the qdrant docs for more info
+# V can set to `:memory:`, `localhost`, a file, or a cloud URL - see the qdrant docs for more info
+DATABASE_LOCATION = os.getenv("QDRANT_URL", 'localhost')
+DATABASE_API_KEY = os.getenv("QDRANT_API_KEY")

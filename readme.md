@@ -2,7 +2,7 @@
 
 Look up Kanji by drawing them
 
-WIP
+You can access an online demo in https://huggingface.co/spaces/etrotta/kanji_lookup
 
 ### Project Overview
 - Generate synthetic Kanji images using multiple different fonts
@@ -10,10 +10,7 @@ WIP
 - Store the Embeddings in a Vector Database
 - Encode an User submitted image and compare it with existing records
 
-In addition to that, I also added an experimental support to "tune" the search to an specific user's drawings, through the calibration defined in `src/main.py`
-
-Not implemented yet, but considering:
-- gradio app to draw and lookup in real time?
+In addition to that, I also added an experimental support to "tune" the search to an specific user's drawings, through the calibration defined in `src/main.py` (Not supported in the HuggingFace Space)
 
 ### Running it
 
@@ -30,13 +27,17 @@ Running this project for a language other than Japanese would almost definitely 
 
 #### Setting up the database
 
+Set the `QDRANT_URL` and `QDRANT_API_KEY` environment variables if you want to use Qdrant Cloud, or leave it empty if you are running one locally (e.g. via Docker)
+
 ```
 pip install -r requirements.txt
 
 py src/main.py generate_images
 py src/main.py generate_embeddings
-py src/main.py populate_database
+py src/main.py upload_embeddings
 ```
+
+Alternatively, you can use the notebook to generate the images and Embeddings, then use main.py to upload_embeddings
 
 #### Searching based on image files
 
@@ -50,7 +51,7 @@ py src/main.py search path/to/drawings_folder
 ```
 
 ### Accuracy
-Far from 100%, but honestly better than what I expected so far. There are no official benchmarks yet.
+Far from 100%, but feels pretty good for me personally. There are no official benchmarks.
 
 #### Where are the Fonts / Embeddings / Database
 You have to download the character lists and fonts, then generate the Embeddings and upload to a Qdrant Database yourself using the instructions provided above.
@@ -78,21 +79,15 @@ I tried to choose some different styles and (for most part) closer to handwritti
 #### Model used for the embedding
 Not final yet, may still try a few different ones.
 
-At first I considered an Autoencoder or something akin to OpenAI CLIP's, but couldn't find any that looked like they might work.
+At first I considered looking for an Autoencoder, but couldn't find any that looked like they might work.
 
-The most promising models in my inexperienced view were ``kha-white/manga-ocr``, which I am currently using, and `google/deplot`, which I may test later if I cannot get good enough results out of `manga-ocr`.
+The model I ended up using, ``kha-white/manga-ocr``, was one of the few open source models tuned for Japanese text in vision tasks I could find, so I gave it a try and sticked with it after getting results I'm content with.
 
-Currently seems like `manga-ocr` works just fine though.
 
 #### Vector Database
 Using a vector database at all: About half of the reason why I decided to start this project at all was to get some experience with pytorch, transformers and vector databases
 
-Specifically using `Qdrant`: Free, open source, easy to setup locally, the API looks nicer than other options, free cloud tier.
-
-#### Distance Metric
-I'm using `cosine similarity` just because it is the one I had heard about in the context of vector search before. Literally just that.
-
-I might test the other types and compare the results, but did not research in depth.
+Specifically using `Qdrant`: Free, open source, easy to setup locally, the API looks nicer than other options I considered, free cloud tier.
 
 ### User specific Tuning / Calibration
 Very experimental and rather rough/simplistic,

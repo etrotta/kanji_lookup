@@ -4,11 +4,16 @@ import pathlib
 import torch
 from qdrant_client import QdrantClient, models
 
-from config import GENERATED_IMAGES_FOLDER, DATABASE_LOCATION, MODEL_EMBEDDING_SIZE
+from config import (
+    GENERATED_IMAGES_FOLDER,
+    DATABASE_LOCATION,
+    DATABASE_API_KEY,
+    MODEL_EMBEDDING_SIZE,
+)
 
 def create_connection():
-    print("Connecting to Qdrant")
-    return QdrantClient(DATABASE_LOCATION)
+    print(f"Connecting to Qdrant ({DATABASE_LOCATION})")
+    return QdrantClient(DATABASE_LOCATION, api_key=DATABASE_API_KEY, timeout=60)
 
 def create_collection(qdrant: QdrantClient):
     return qdrant.create_collection(
@@ -17,6 +22,15 @@ def create_collection(qdrant: QdrantClient):
             size=MODEL_EMBEDDING_SIZE,
             distance=models.Distance.COSINE,
         ),
+        optimizers_config=models.OptimizersConfigDiff(
+            indexing_threshold=0,
+        ),
+    )
+
+def index_collection(qdrant: QdrantClient):
+    qdrant.update_collection(
+        collection_name="kanji",
+        optimizer_config=models.OptimizersConfigDiff(indexing_threshold=20000),
     )
 
 
@@ -34,7 +48,8 @@ def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Ten
                 },
             )
             for kanji, embedding in kanji_dict.items()
-        ]
+        ],
+        batch_size=256,
     )
 
 

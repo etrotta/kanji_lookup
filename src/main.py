@@ -28,6 +28,7 @@ from encoder import (
 from database import (
     create_connection,
     create_collection,
+    index_collection,
     insert,
     search_vector,
     format_search_results,
@@ -114,16 +115,21 @@ def upload_embeddings():
     font_tensors_folders = list(GENERATED_EMBEDDINGS_FOLDER.iterdir())
     print(f"Uploading embeddings for the following fonts: {tuple(folder.name for folder in font_tensors_folders)}")
 
+    _checkpoint = 0
     for folder in tqdm(font_tensors_folders):
-        tensors = list(folder.glob("*.pt"))
-        print(f"Found {len(tensors)} batches of tensors for font {folder.name}")
+        tensor_files = list(folder.glob("*.pt"))
+        print(f"Found {len(tensor_files)} batches of tensors for font {folder.name}")
 
-        for file in tqdm(tensors):
-            tensor = torch.load(file, weights_only=True)
-            labels = file.with_suffix(".txt").read_text("UTF-8").splitlines()
-            embeddings = {label: embedding for label, embedding in zip(labels, tensor)}
+        for file in tqdm(tensor_files):
+            _checkpoint += 1
+            if _checkpoint > 0:
+                tensor = torch.load(file, weights_only=True)
+                labels = file.with_suffix(".txt").read_text("UTF-8").splitlines()
+                embeddings = {label: embedding for label, embedding in zip(labels, tensor)}
 
-            insert(qdrant, folder.name, embeddings, standard_kanji_set)
+                insert(qdrant, folder.name, embeddings, standard_kanji_set)
+    
+    index_collection(qdrant)
 
 
 def _search_files(files: list[Path]):
@@ -169,4 +175,6 @@ if __name__ == "__main__":
         "calibrate": create_calibration_vector,
         "search": lambda : search_path(args.input),
     }
+    if not hasattr(args, '_name') or args._name not in functions:
+        raise Exception("Command not found")
     functions[args._name]()
