@@ -44,12 +44,15 @@ def list_fonts() -> dict[str, ImageFont.FreeTypeFont]:
 def generate_images_for_font(font: ImageFont.FreeTypeFont, kanji_list: list[str]) -> dict[str, Image.Image]:
     """Returns a dictionary of `kanji -> Image`"""
     out = {}
+    _bad = []
     for kanji in kanji_list:
         image = draw_kanji(font, kanji)
-        if not check_has_text(image):
-            print(f"Font {font} does not seems to support {kanji}, skipping it for this font")
-            continue
-        out[kanji] = image
+        if check_has_text(image):
+            out[kanji] = image
+        else:
+            _bad.append(kanji)
+    if _bad:
+        print(f"Font {font.getname()} does not seems to support {_bad}, skipping them for this font")
     return out
 
 if __name__ == "__main__":

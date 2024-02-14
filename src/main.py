@@ -48,16 +48,17 @@ def batched(original: list[T], group_size: int) -> list[list[T]]:
 
 def generate_images():
     fonts = list_fonts()
-    print(f"Using the following fonts: {fonts.keys()}")
+    print(f"Using the {len(fonts)} following fonts: {fonts.keys()}")
 
     kanji_list = load_kanji_list()
-    print(f"Processing a total of {len(kanji_list)} Kanji in batches of {GENERATE_IMAGES_BATCH_SIZE}")
     kanji_batches = batched(kanji_list, GENERATE_IMAGES_BATCH_SIZE)
+    print(f"Processing a total of {len(kanji_list)} Kanji in {len(kanji_batches)} batches of {GENERATE_IMAGES_BATCH_SIZE}")
 
     for font_name in tqdm(fonts):
         font = fonts[font_name]
         out_folder = GENERATED_IMAGES_FOLDER / font_name
         out_folder.mkdir(exist_ok=True, parents=True)
+        print(f"Generating images for {font_name}")
 
         for kanji_batch in tqdm(kanji_batches):
             images = generate_images_for_font(font, kanji_batch)
@@ -115,7 +116,7 @@ def upload_embeddings():
 
     for folder in tqdm(font_tensors_folders):
         tensors = list(folder.glob("*.pt"))
-        print(f"Found {len(tensors)} tensors for font {folder.name}")
+        print(f"Found {len(tensors)} batches of tensors for font {folder.name}")
 
         for file in tqdm(tensors):
             tensor = torch.load(file, weights_only=True)

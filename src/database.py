@@ -21,7 +21,6 @@ def create_collection(qdrant: QdrantClient):
 
 
 def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Tensor], standard_set: set[str]):
-    # TODO UPDATE TO UPLOAD POINTS
     return qdrant.upload_points(
         collection_name="kanji",
         points=[
