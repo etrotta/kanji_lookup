@@ -2,23 +2,20 @@ import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 
 from config import (
-    ROOT,
-    FONTS_FOLDER,
+    INPUT_KANJI_FOLDER,
+    INPUT_FONTS_FOLDER,
     MODEL_IMAGE_SIZE,
     FONT_SIZE,
 )
 
-def load_kanji_list(filename: str = "kanji.txt", encoding: str = "UTF-8"):
-    kanji_list = (ROOT / filename).read_text(encoding=encoding).splitlines()
+def get_standard_kanji_set() -> set[str]:
+    file = INPUT_KANJI_FOLDER / "kanji_joyo.txt"
+    return set(file.read_text(encoding="UTF-8").splitlines())
 
-    # For testing, only do the first few + some hardcoded
-    kanji_list = kanji_list[:200]
-
-    manual = list("猫狐狼四匹")
-    for kanji in manual:
-        if kanji not in kanji_list:
-            kanji_list.append(kanji)
-
+def load_kanji_list() -> list[str]:
+    kanji_list = []
+    for file in INPUT_KANJI_FOLDER.glob("*.txt"):
+        kanji_list += file.read_text(encoding="UTF-8").splitlines()
     return kanji_list
 
 
@@ -41,7 +38,7 @@ def list_fonts() -> dict[str, ImageFont.FreeTypeFont]:
     """Returns a dictionary of `font_name -> ImageFont`"""
     return {
         font_file.stem: ImageFont.truetype(font_file, FONT_SIZE)
-        for font_file in FONTS_FOLDER.glob("**/*.ttf")
+        for font_file in INPUT_FONTS_FOLDER.glob("**/*.ttf")
     }
 
 def generate_images_for_font(font: ImageFont.FreeTypeFont, kanji_list: list[str]) -> dict[str, Image.Image]:
@@ -56,11 +53,12 @@ def generate_images_for_font(font: ImageFont.FreeTypeFont, kanji_list: list[str]
     return out
 
 if __name__ == "__main__":
+    from config import ROOT
     font_name, font = list(list_fonts().items())[0]
-    # out_folder = IMAGES_FOLDER
     out_folder = ROOT / ".testing" / "images" / font_name
     out_folder.mkdir(exist_ok=True, parents=True)
-    kanji_list = load_kanji_list()[-10:]
+    kanji_list = load_kanji_list()[:20]
+    kanji_list += list("猫狐狼四匹")
     images = generate_images_for_font(font, kanji_list)
     for kanji, img in images.items():
         img.save(out_folder / f"{kanji}.png")

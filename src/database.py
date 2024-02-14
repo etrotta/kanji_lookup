@@ -4,7 +4,7 @@ import pathlib
 import torch
 from qdrant_client import QdrantClient, models
 
-from config import IMAGES_FOLDER, DATABASE_LOCATION, MODEL_EMBEDDING_SIZE
+from config import GENERATED_IMAGES_FOLDER, DATABASE_LOCATION, MODEL_EMBEDDING_SIZE
 
 def create_connection():
     print("Connecting to Qdrant")
@@ -20,7 +20,7 @@ def create_collection(qdrant: QdrantClient):
     )
 
 
-def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Tensor]):
+def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Tensor], standard_set: set[str]):
     # TODO UPDATE TO UPLOAD POINTS
     return qdrant.upload_points(
         collection_name="kanji",
@@ -30,6 +30,7 @@ def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Ten
                 vector=embedding,
                 payload={
                     "kanji": kanji,
+                    "is_standard": kanji in standard_set,
                     "font": font_name,
                 },
             )
@@ -38,7 +39,7 @@ def insert(qdrant: QdrantClient, font_name: str, kanji_dict: dict[str, torch.Ten
     )
 
 
-def search(qdrant: QdrantClient, query_vector: torch.Tensor, limit: int=10):
+def search_vector(qdrant: QdrantClient, query_vector: torch.Tensor, limit: int=10):
     hits = qdrant.search(
         collection_name="kanji",
         # query_vector=query_vector,
@@ -62,7 +63,7 @@ def format_search_results(hits: list[models.ScoredPoint]) -> list[SearchResult]:
         formatted.append(SearchResult(
             kanji = kanji,
             font = font,
-            image_path = IMAGES_FOLDER / font / f"{kanji}.png",
+            image_path = GENERATED_IMAGES_FOLDER / font / f"{kanji}.png",
             score = point.score,
         ))
     # assert sorted(formatted, key=lambda result: result.score, reverse=True) == formatted
@@ -78,8 +79,8 @@ if __name__ == "__main__":
     from PIL import Image
     from generate_images import list_fonts, load_kanji_list, generate_images_for_font
 
-    font_name, font = list(list_fonts().items())[-1]
-    kanji_list = load_kanji_list()[-10:]
+    font_name, font = next(iter(list_fonts().items()))
+    kanji_list = load_kanji_list()[:20]
     images = generate_images_for_font(font, kanji_list)
 
     from encoder import load_model, get_embeddings
@@ -87,14 +88,15 @@ if __name__ == "__main__":
     extractor, encoder = load_model()
 
     test_image = Image.open(ROOT / ".testing" / "drawing.png", "r")
+    standard_set = set(kanji_list[:10])  # complete lie, but just for testing
 
     tensor = get_embeddings(extractor, encoder, list(images.values()) + [test_image])
     embeddings = {name: tensor[i] for i, name in enumerate(kanji_list)}
     drawing_embedding = tensor[-1]
 
-    insert(qdrant, font_name, embeddings)
+    insert(qdrant, font_name, embeddings, standard_set)
 
-    results = search(qdrant, drawing_embedding)
+    results = search_vector(qdrant, drawing_embedding)
 
     formatted = format_search_results(results)
     print(formatted)

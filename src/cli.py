@@ -29,12 +29,16 @@ arg_generate_embeddings.set_defaults(_name="generate_embeddings")
 # arg_generate_embeddings.add_argument("-o", "--output", default="embeddings", type=Path)
 
 # CREATE DATABASE
-arg_populate_database = subparsers.add_parser("populate_database")
-arg_populate_database.set_defaults(_name="populate_database")
+arg_upload_embeddings = subparsers.add_parser("upload_embeddings")
+arg_upload_embeddings.set_defaults(_name="upload_embeddings")
 
-# arg_populate_database.add_argument("--input", default="embeddings", type=Path)
+# arg_upload_embeddings.add_argument("--input", default="embeddings", type=Path)
 
-# arg_populate_database.add_argument("--database-location")
+# arg_upload_embeddings.add_argument("--database-location")
+
+# CREATE AN EMBEDDING BASED ON THE DIFFERENCE BETWEEN THE USER INPUT AND THE REFERENCE
+arg_calibrate = subparsers.add_parser("calibrate")
+arg_calibrate.set_defaults(_name="calibrate")
 
 # SEARCH DATABASE
 arg_search = subparsers.add_parser("search")

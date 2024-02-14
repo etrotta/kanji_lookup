@@ -1,8 +1,6 @@
-/fonts
-/images
-/models
-/embeddings
-/database
-
 /.testing
+/data
+/models
+
+.venv
 __pycache__
