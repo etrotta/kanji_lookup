@@ -1,2 +1,3 @@
 polars
-# datasets
+tqdm
+qdrant_client
