@@ -1,0 +1,3 @@
+polars
+tqdm
+qdrant_client
